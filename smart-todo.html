@@ -1,0 +1,440 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Smart To‑Do — by ChatGPT</title>
+  <style>
+    :root {
+      --bg: #0b0f14;
+      --panel: #121821;
+      --muted:#9aa4b2;
+      --text:#e6edf3;
+      --accent:#4f8cff;
+      --accent-2:#22c55e;
+      --danger:#ef4444;
+      --warning:#f59e0b;
+      --card:#0f141b;
+      --border:#1f2a37;
+      --shadow: 0 10px 30px rgba(0,0,0,0.35);
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin:0; }
+    body {
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background: radial-gradient(1200px 800px at 10% -10%, #101827, #0b0f14 60%);
+      color: var(--text);
+      display: grid;
+      place-items: start center;
+      padding: 32px 16px 64px;
+    }
+    .app {
+      width: min(100%, 960px);
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    header {
+      padding: 20px 24px;
+      display: flex; align-items: center; gap: 12px; justify-content: space-between;
+      background: linear-gradient(120deg, #0f172a, #0b1220);
+      border-bottom: 1px solid var(--border);
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand .logo {
+      width: 36px; height: 36px;
+      background: radial-gradient(circle at 30% 30%, var(--accent), #7aa6ff);
+      border-radius: 50%;
+      box-shadow: 0 6px 18px rgba(79,140,255,0.45);
+    }
+    h1 { font-size: 18px; margin: 0; letter-spacing: 0.2px; }
+    .github {
+      text-decoration: none; color: var(--muted); font-size: 13px;
+      padding: 6px 10px; border: 1px solid var(--border); border-radius: 999px;
+    }
+    .controls {
+      display:grid; gap:12px; grid-template-columns: 1.5fr 1fr 130px 130px auto;
+      padding: 16px; background: var(--panel); border-bottom: 1px solid var(--border);
+    }
+    input, select, button, textarea {
+      background: var(--card); color: var(--text); border:1px solid var(--border);
+      border-radius: 12px; padding: 10px 12px; outline: none;
+    }
+    input::placeholder, textarea::placeholder { color: #6b7280; }
+    button {
+      cursor:pointer; transition: transform .06s ease, background .2s ease, border-color .2s;
+    }
+    .btn-primary { background: var(--accent); border-color: transparent; font-weight: 600; }
+    .btn-primary:hover { transform: translateY(-1px); }
+    .btn-ghost { background: transparent; }
+    .btn-danger { background: var(--danger); border-color: transparent; font-weight: 600; }
+    .btn-outline { background: transparent; border-color: var(--border); }
+    .pill {
+      display:inline-flex; gap:6px; align-items:center; padding:4px 8px; border-radius:999px;
+      border:1px solid var(--border); font-size: 12px; color: var(--muted);
+    }
+    .row { display:flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .tasks {
+      padding: 8px 12px 24px;
+    }
+    .task {
+      display:grid; grid-template-columns: 28px 1fr auto; gap: 12px;
+      padding: 12px; margin: 10px 4px; border:1px solid var(--border); border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+      box-shadow: var(--shadow);
+    }
+    .task.dragging { opacity: 0.6; transform: scale(0.99); }
+    .task-title { font-weight: 600; }
+    .task small { color: var(--muted); }
+    .badges { display:flex; gap: 6px; flex-wrap: wrap; }
+    .priority-high { color: #fff; background: #ef4444; }
+    .priority-medium { color: #0b0f14; background: #fbbf24; }
+    .priority-low { color: #0b0f14; background: #34d399; }
+    .task .actions { display:flex; gap: 6px; }
+    .filters {
+      padding: 12px 16px; display:flex; flex-wrap: wrap; gap:8px; align-items: center;
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0));
+      border-bottom: 1px solid var(--border);
+    }
+    .search { flex: 1; }
+    .empty {
+      text-align:center; color: var(--muted); padding: 24px; border: 1px dashed var(--border);
+      border-radius: var(--radius); margin: 12px; background: rgba(255,255,255,0.02);
+    }
+    .footer {
+      padding: 12px 16px; color: var(--muted); display:flex; justify-content: space-between; font-size: 12px;
+      border-top: 1px solid var(--border); background: #0c121b;
+    }
+    @media (max-width: 840px) {
+      .controls { grid-template-columns: 1fr 110px 120px 120px; }
+      #desc { grid-column: 1/-1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>Smart To‑Do</h1>
+          <div style="font-size:12px; color:#9aa4b2">Offline, fast, and saved in your browser.</div>
+        </div>
+      </div>
+      <a class="github" href="#" onclick="exportData()" title="Export tasks as JSON">Export</a>
+    </header>
+
+    <section class="controls" aria-label="Add a task">
+      <input id="desc" placeholder="What needs to be done?" />
+      <input id="due" type="date" />
+      <select id="priority" title="Priority">
+        <option value="low">Low</option>
+        <option value="medium" selected>Medium</option>
+        <option value="high">High</option>
+      </select>
+      <input id="tags" placeholder="#tags (comma or # separated)" />
+      <button class="btn-primary" id="add">Add Task</button>
+    </section>
+
+    <section class="filters">
+      <div class="row">
+        <button class="pill btn-outline" data-filter="all">All</button>
+        <button class="pill btn-outline" data-filter="active">Active</button>
+        <button class="pill btn-outline" data-filter="completed">Completed</button>
+        <button class="pill btn-outline" data-filter="today">Due Today</button>
+        <button class="pill btn-outline" data-filter="overdue">Overdue</button>
+        <button class="pill btn-outline" data-filter="high">High Priority</button>
+      </div>
+      <input class="search" id="search" placeholder="Search tasks or #tags" />
+      <div class="row">
+        <button class="pill btn-outline" onclick="clearCompleted()">Clear Completed</button>
+        <button class="pill btn-outline" onclick="nuke()">Reset</button>
+      </div>
+    </section>
+
+    <section class="tasks" id="list" aria-live="polite"></section>
+
+    <div class="footer">
+      <div id="counts">0 tasks</div>
+      <div>Tip: Drag tasks to reorder • Auto‑tags based on keywords</div>
+    </div>
+  </div>
+
+  <template id="task-template">
+    <div class="task" draggable="true">
+      <input type="checkbox" class="checkbox"/>
+      <div>
+        <div class="task-title"></div>
+        <small class="meta"></small>
+        <div class="badges"></div>
+      </div>
+      <div class="actions">
+        <button class="pill btn-ghost edit">Edit</button>
+        <button class="pill btn-ghost dup">Duplicate</button>
+        <button class="pill btn-ghost del">Delete</button>
+      </div>
+    </div>
+  </template>
+
+  <script>
+    // Basic persistence
+    const storeKey = "smart_todo_v1";
+    const $ = (q, el=document) => el.querySelector(q);
+    const $$ = (q, el=document) => Array.from(el.querySelectorAll(q));
+
+    const state = {
+      tasks: [],
+      filter: "all",
+      search: ""
+    };
+
+    function load() {
+      try {
+        const data = JSON.parse(localStorage.getItem(storeKey) || "null");
+        if (data && Array.isArray(data.tasks)) Object.assign(state, data);
+      } catch {}
+    }
+    function save() { localStorage.setItem(storeKey, JSON.stringify(state)); }
+
+    // "AI-ish" auto-tagging by keywords (offline heuristic)
+    const smartTags = [
+      { q: [/bill|invoice|payment|tax/i], tags: ["finance", "pay"], priority: "high" },
+      { q: [/meet|call|zoom|interview/i], tags: ["meeting"] },
+      { q: [/resume|cv|portfolio|linkedin/i], tags: ["career"] },
+      { q: [/bug|fix|issue|debug/i], tags: ["dev"], priority: "high" },
+      { q: [/grocer|milk|bread|market/i], tags: ["personal", "shopping"] },
+      { q: [/project|report|analysis|model/i], tags: ["work"] },
+      { q: [/exercise|run|gym|yoga/i], tags: ["health"] }
+    ];
+    function autoClassify(desc) {
+      const out = new Set();
+      let prio = null;
+      for (const rule of smartTags) {
+        if (rule.q.some(rx => rx.test(desc))) {
+          rule.tags.forEach(t => out.add(t));
+          if (!prio && rule.priority) prio = rule.priority;
+        }
+      }
+      return { tags: [...out], priority: prio };
+    }
+
+    function uid() { return Math.random().toString(36).slice(2,9); }
+    function fmtDate(s) {
+      if (!s) return "No due date";
+      const d = new Date(s + "T00:00:00");
+      return d.toLocaleDateString();
+    }
+    function isToday(s) {
+      if (!s) return false;
+      const t = new Date();
+      const d = new Date(s + "T00:00:00");
+      return d.toDateString() === new Date(t.getFullYear(), t.getMonth(), t.getDate()).toDateString();
+    }
+    function isOverdue(s, done) {
+      if (!s || done) return false;
+      const now = new Date(); now.setHours(0,0,0,0);
+      const d = new Date(s + "T00:00:00");
+      return d < now;
+    }
+
+    function addTask({desc, due, priority, tags}) {
+      if (!desc.trim()) return;
+      // merge auto classification
+      const ai = autoClassify(desc);
+      const mergedTags = new Set([...(tags || []), ...ai.tags]);
+      if (!priority || priority === "medium") priority = ai.priority || priority || "medium";
+      state.tasks.push({ id: uid(), desc: desc.trim(), due: due || "", priority, tags: [...mergedTags], done:false });
+      save(); render();
+    }
+
+    function updateTask(id, patch) {
+      const t = state.tasks.find(x => x.id === id);
+      if (!t) return;
+      Object.assign(t, patch);
+      save(); render();
+    }
+
+    function deleteTask(id) {
+      state.tasks = state.tasks.filter(x => x.id !== id);
+      save(); render();
+    }
+
+    function duplicateTask(id) {
+      const t = state.tasks.find(x => x.id === id);
+      if (!t) return;
+      const copy = { ...t, id: uid(), desc: t.desc + " (copy)", done:false };
+      state.tasks.push(copy);
+      save(); render();
+    }
+
+    function clearCompleted() {
+      state.tasks = state.tasks.filter(t => !t.done);
+      save(); render();
+    }
+
+    function nuke() {
+      if (!confirm("Reset all tasks?")) return;
+      state.tasks = [];
+      save(); render();
+    }
+
+    function grabForm() {
+      const desc = $("#desc").value;
+      const due = $("#due").value;
+      const priority = $("#priority").value;
+      const tagStr = $("#tags").value.trim();
+      const tags = tagStr ? tagStr.replace(/#/g,"").split(/[,\s]+/).filter(Boolean) : [];
+      return { desc, due, priority, tags };
+    }
+
+    function render() {
+      const list = $("#list");
+      list.innerHTML = "";
+      const terms = state.search.toLowerCase().split(/\s+/).filter(Boolean);
+      let items = state.tasks.filter(t => {
+        const hay = (t.desc + " " + t.tags.join(" ") + " " + t.priority).toLowerCase();
+        const matchesSearch = terms.every(w => hay.includes(w));
+        let pass = true;
+        switch (state.filter) {
+          case "active": pass = !t.done; break;
+          case "completed": pass = t.done; break;
+          case "today": pass = isToday(t.due); break;
+          case "overdue": pass = isOverdue(t.due, t.done); break;
+          case "high": pass = t.priority === "high"; break;
+        }
+        return matchesSearch && pass;
+      });
+
+      if (!items.length) {
+        const div = document.createElement("div");
+        div.className = "empty";
+        div.textContent = "No tasks to show. Add something above!";
+        list.appendChild(div);
+      }
+
+      for (const t of items) {
+        const node = $("#task-template").content.firstElementChild.cloneNode(true);
+        node.dataset.id = t.id;
+        if (t.dragging) node.classList.add("dragging");
+
+        const cb = $(".checkbox", node);
+        cb.checked = t.done;
+        cb.addEventListener("change", () => updateTask(t.id, { done: cb.checked }));
+
+        $(".task-title", node).textContent = t.desc;
+        $(".meta", node).textContent = `${fmtDate(t.due)} • Priority: ${t.priority}`;
+
+        const badges = $(".badges", node);
+        const pr = document.createElement("span");
+        pr.className = "pill " + (t.priority === "high" ? "priority-high" : t.priority === "medium" ? "priority-medium" : "priority-low");
+        pr.textContent = t.priority.charAt(0).toUpperCase() + t.priority.slice(1);
+        badges.appendChild(pr);
+
+        if (isToday(t.due)) {
+          const b = document.createElement("span");
+          b.className = "pill"; b.textContent = "Due Today";
+          badges.appendChild(b);
+        }
+        if (isOverdue(t.due, t.done)) {
+          const b = document.createElement("span");
+          b.className = "pill"; b.style.background = "var(--danger)"; b.textContent = "Overdue";
+          badges.appendChild(b);
+        }
+
+        for (const tag of t.tags) {
+          const b = document.createElement("span");
+          b.className = "pill"; b.textContent = "#" + tag;
+          badges.appendChild(b);
+        }
+
+        $(".edit", node).addEventListener("click", () => {
+          const newDesc = prompt("Edit task", t.desc) ?? t.desc;
+          const newDue = prompt("New due date (YYYY-MM-DD)", t.due) ?? t.due;
+          const newPr = prompt("Priority (low|medium|high)", t.priority) ?? t.priority;
+          const newTags = prompt("Tags (comma or # separated)", t.tags.join(", ")) ?? t.tags.join(", ");
+          updateTask(t.id, { desc: newDesc, due: newDue, priority: newPr, tags: newTags.replace(/#/g,"").split(/[,\s]+/).filter(Boolean) });
+        });
+        $(".dup", node).addEventListener("click", () => duplicateTask(t.id));
+        $(".del", node).addEventListener("click", () => deleteTask(t.id));
+
+        // drag
+        node.addEventListener("dragstart", e => {
+          node.classList.add("dragging");
+          e.dataTransfer.setData("text/plain", t.id);
+        });
+        node.addEventListener("dragend", () => node.classList.remove("dragging"));
+        list.addEventListener("dragover", e => {
+          e.preventDefault();
+          const dragging = $(".task.dragging");
+          const after = getDragAfterElement(list, e.clientY);
+          if (after == null) {
+            list.appendChild(dragging);
+          } else {
+            list.insertBefore(dragging, after);
+          }
+        });
+        list.addEventListener("drop", e => {
+          e.preventDefault();
+          const draggingId = e.dataTransfer.getData("text/plain");
+          reorder(draggingId, getCurrentOrder());
+        });
+
+        list.appendChild(node);
+      }
+
+      $("#counts").textContent = `${state.tasks.length} task${state.tasks.length!==1?"s":""}`;
+    }
+
+    function getCurrentOrder() {
+      return $$(".task").map(el => el.dataset.id).filter(Boolean);
+    }
+    function reorder(id, newOrder) {
+      const map = new Map(state.tasks.map(t => [t.id, t]));
+      state.tasks = newOrder.map(i => map.get(i)).filter(Boolean);
+      save(); render();
+    }
+    function getDragAfterElement(container, y) {
+      const els = [...container.querySelectorAll(".task:not(.dragging)")];
+      return els.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        if (offset < 0 && offset > closest.offset) return { offset, element: child };
+        else return closest;
+      }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+
+    // Event hookups
+    $("#add").addEventListener("click", () => {
+      const f = grabForm();
+      addTask(f);
+      $("#desc").value = ""; $("#tags").value = "";
+    });
+    $("#desc").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") $("#add").click();
+    });
+    $$(".filters .btn-outline").forEach(btn => btn.addEventListener("click", () => {
+      state.filter = btn.dataset.filter; render();
+    }));
+    $("#search").addEventListener("input", (e) => {
+      state.search = e.target.value; render();
+    });
+
+    // Export / Import
+    function exportData() {
+      const data = JSON.stringify(state, null, 2);
+      const blob = new Blob([data], {type:"application/json"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "smart_todo_backup.json"; a.click();
+      setTimeout(()=>URL.revokeObjectURL(url), 1000);
+    }
+    window.exportData = exportData;
+
+    load(); render();
+  </script>
+</body>
+</html>
